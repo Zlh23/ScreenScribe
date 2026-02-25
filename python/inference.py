@@ -1,10 +1,10 @@
 """
-Load trained ColorContrastNet and predict foreground OKLCH + actual APCA contrast.
+Load trained ColorContrastNet or AffineColorContrastNet and predict foreground OKLCH + actual APCA contrast.
 """
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import torch
 
@@ -14,18 +14,25 @@ if str(_SCRIPT_DIR) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(_SCRIPT_DIR))
 
 from model.net import ColorContrastNet
+from model.affine_net import AffineColorContrastNet
 from color.oklch import oklch_to_srgb
 from color.apca import apca_contrast
 
 
-def load_model(checkpoint_path: str | Path, device: torch.device | None = None) -> ColorContrastNet:
-    """Load ColorContrastNet from checkpoint. Returns model in eval mode."""
+def load_model(
+    checkpoint_path: str | Path,
+    device: torch.device | None = None,
+) -> Union[ColorContrastNet, AffineColorContrastNet]:
+    """Load ColorContrastNet or AffineColorContrastNet from checkpoint. Returns model in eval mode."""
     path = Path(checkpoint_path)
     ckpt = torch.load(path, map_location="cpu", weights_only=True)
-    hidden = ckpt["hidden"]
     state = ckpt["model_state_dict"]
-    use_ln = "mlp.1.weight" in state and state["mlp.1.weight"].dim() == 1
-    model = ColorContrastNet(hidden=hidden, use_layer_norm=use_ln)
+    if ckpt.get("model_type") == "AffineColorContrastNet":
+        model = AffineColorContrastNet(hidden=ckpt["hidden"])
+    else:
+        hidden = ckpt["hidden"]
+        use_ln = "mlp.1.weight" in state and state["mlp.1.weight"].dim() == 1
+        model = ColorContrastNet(hidden=hidden, use_layer_norm=use_ln)
     model.load_state_dict(state, strict=True)
     model.eval()
     if device is not None:
@@ -34,7 +41,7 @@ def load_model(checkpoint_path: str | Path, device: torch.device | None = None) 
 
 
 def predict(
-    model: ColorContrastNet,
+    model: Union[ColorContrastNet, AffineColorContrastNet],
     bg_oklch: torch.Tensor,
     want_l: float | torch.Tensor,
     want_c: float | torch.Tensor,

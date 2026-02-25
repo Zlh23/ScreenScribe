@@ -24,4 +24,9 @@ log = "0.4"
 tauri = { version = "2.10.0", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-global-shortcut = "2"
 tauri-plugin-log = "2"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
+webview2-com = "0.38"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"

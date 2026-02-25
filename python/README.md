@@ -70,11 +70,26 @@ result = predict(
 # result["l"], result["c"], result["h"], result["contrast"]
 ```
 
+## Affine 模型（Shader 友好）
+
+**AffineColorContrastNet**：前景对背景为仿射 `fg = mul * bg_oklch + add`（OKLCH 逐通道）。两个 MLP 只依赖 (weights_4, want_lchc_4)，不读背景；背景仅在最后与预计算的 mul、add 做乘加，便于在 shader 里只做轻量运算。
+
+**从零训练**（与原模型相同的数据与 loss，不依赖教师）：
+
+```bash
+python train_affine.py --epochs 150 --save_dir checkpoints --save_every 10
+```
+
+- 保存到 `checkpoints/AffineColorContrastNet/ckpt_epoch_*.pt` 与 `ckpt_final.pt`。
+- 日志到 `logs/affine_color_contrast/`。
+- Web UI 的 checkpoint 下拉框会同时列出 `ColorContrastNet` 与 `AffineColorContrastNet`，选对应目录即可。
+- 可选：`--hidden_mul 64 64 --hidden_add 64 64` 调整两个 MLP 的隐层。
+
 ## 结构
 
 - `color/`：可微 OKLCH→sRGB、APCA 对比度
-- `model/`：两路网络 M1@M2 → (L,C,H)
+- `model/`：ColorContrastNet（主模型）、AffineColorContrastNet（fg=mul*bg+add，Shader 友好）
 - `data/`：无标签合成采样
 - `loss.py`：加权损失
-- `train.py`：训练入口
+- `train.py`：ColorContrastNet 训练；`train_affine.py`：AffineColorContrastNet 从零训练
 - `inference.py`：加载模型与预测 API

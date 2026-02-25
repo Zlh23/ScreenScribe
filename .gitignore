@@ -24,6 +24,8 @@ python/**/__pycache__/
 *.egg-info/
 .eggs/
 python/logs/
+python/checkpoints/
+*.pt
 
 # Environment
 .env

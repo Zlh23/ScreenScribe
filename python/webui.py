@@ -19,6 +19,7 @@ import time
 import numpy as np
 
 from model.net import ColorContrastNet
+from model.affine_net import AffineColorContrastNet
 from color.oklch import oklch_to_srgb, srgb_to_oklch
 from color.apca import apca_contrast
 from loss import weighted_loss
@@ -34,10 +35,13 @@ def _rgb_to_hex(r: int, g: int, b: int) -> str:
 
 def _load_model(ckpt_path: str, device: str):
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    hidden = ckpt["hidden"]
     state = ckpt["model_state_dict"]
-    use_ln = "mlp.1.weight" in state and state["mlp.1.weight"].dim() == 1
-    model = ColorContrastNet(hidden=hidden, use_layer_norm=use_ln)
+    if ckpt.get("model_type") == "AffineColorContrastNet":
+        model = AffineColorContrastNet(hidden=ckpt["hidden"])
+    else:
+        hidden = ckpt["hidden"]
+        use_ln = "mlp.1.weight" in state and state["mlp.1.weight"].dim() == 1
+        model = ColorContrastNet(hidden=hidden, use_layer_norm=use_ln)
     model.load_state_dict(state, strict=True)
     model.eval()
     model.to(device)
